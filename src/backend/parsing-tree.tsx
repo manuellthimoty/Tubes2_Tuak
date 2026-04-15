@@ -5,21 +5,61 @@ interface treeNode {
   type: NodeType;
   tagName: string;      // misal: "div", "img", "#text"
   content: string;      // isi teks (untuk text node / comment)
+  className : string;
+  idName : string;
   parent: number | null; // id parent (-1 atau null = root)
   children: number[];   // id anak-anak
 }
 
 let nodes: treeNode[] = [];
-
 function makeNode(
   id: number,
   type: NodeType,
   tagName: string,
   content: string,
+  className : string,
+  idName : string,
   parent: number | null
 ): treeNode {
-  return { id, type, tagName, content, parent, children: [] };
+  return { id, type, tagName, content,className,idName, parent, children: [] };
 }
+
+function getClassName(rawTag: string): string | null {
+  const parts = rawTag.trim().split(/\s+/);
+
+  for (const part of parts) {
+    if (part.startsWith("class=")) {
+      let value = part.slice(6); // buang "class="
+
+      // hapus tanda kutip
+      if (value.startsWith("'") || value.startsWith('"')) {
+        value = value.slice(1, -1);
+      }
+
+      return value;
+    }
+  }
+  return null;
+}
+
+function getIdName(rawTag: string): string | null {
+  const parts = rawTag.trim().split(/\s+/);
+
+  for (const part of parts) {
+    if (part.startsWith("id=")) {
+      let value = part.slice(3); // buang "id="
+
+      // hapus tanda kutip
+      if (value.startsWith("'") || value.startsWith('"')) {
+        value = value.slice(1, -1);
+      }
+
+      return value;
+    }
+  }
+  return null;
+}
+
 
 const voidElements = new Set([
   "area", "base", "br", "col", "embed",
@@ -57,7 +97,7 @@ function parseHTML(text: string): string[] {
 
 function parseTree(tokens: string[]): void {
   // Node root (id=0)
-  nodes.push(makeNode(0, "element", "#root", "", null));
+  nodes.push(makeNode(0, "element", "#root", "", "","",null));
 
   let nodeCount = 0;
   let curRoot = 0; // id node yang sedang aktif sebagai "orang tua"
@@ -86,7 +126,7 @@ function parseTree(tokens: string[]): void {
 
       if (rawTag.startsWith("!--")) {// ini komen
         nodeCount++;
-        const commentNode = makeNode(nodeCount, "comment", "#comment", rawTag, curRoot);
+        const commentNode = makeNode(nodeCount, "comment", "#comment","","", rawTag, curRoot);
         nodes.push(commentNode);
         nodes[curRoot].children.push(nodeCount);
         i++;
@@ -94,10 +134,12 @@ function parseTree(tokens: string[]): void {
       }
 
       const tagName = rawTag.trim().split(/\s+/)[0].toLowerCase();
+      const className = getClassName(rawTag) || "";
+      const idName = getIdName(rawTag) || "";
       const isVoid = voidElements.has(tagName);
 
       nodeCount++;// incremennya nodeCountnya
-      const newNode = makeNode(nodeCount, "element", tagName, "", curRoot); // buat node baru
+      const newNode = makeNode(nodeCount, "element", tagName, "",className,idName, curRoot); // buat node baru]
       nodes.push(newNode);
       nodes[curRoot].children.push(nodeCount);
 
@@ -107,7 +149,7 @@ function parseTree(tokens: string[]): void {
 
     } else { // text biasa
       nodeCount++;
-      const textNode = makeNode(nodeCount, "text", "#text", token, curRoot);
+      const textNode = makeNode(nodeCount, "text", "#text", token,"","", curRoot);
       nodes.push(textNode);
       nodes[curRoot].children.push(nodeCount);
     }
@@ -116,9 +158,9 @@ function parseTree(tokens: string[]): void {
   }
 }
 
-
 function printTree(nodeId: number, depth: number = 0): void {
   const node = nodes[nodeId];
+  if(!node) return;
   const indent = "  ".repeat(depth);
   let label = "";
   if(node.type === "text"){
@@ -128,7 +170,15 @@ function printTree(nodeId: number, depth: number = 0): void {
     label = "#comment";
   }
   else{
-    label = "<" + node.tagName + ">";
+    label = "<" + node.tagName;
+    if(node.className !== null && node.className !== ""){
+      label = label + " class = " + node.className;
+    }
+    if(node.idName !== null && node.idName !== ""){
+      label = label + " id = " + node.idName;
+    }
+
+    label += ">";
   }
   console.log(indent + " [" + node.id + "] " + label );
   for (const childId of node.children) {
@@ -137,16 +187,15 @@ function printTree(nodeId: number, depth: number = 0): void {
 }
 
 
-const input = `<head><title>My First Web Page</title></head>
+const inputText = `<head><title>My First Web Page</title></head>
 <body>
   <h1>Welcome</h1>
-  <p>Paragraph here.</p>
+  <p class="hai">Paragraph here.</p>
   <img src="photo.jpg">
   <br>
-  <a href="#">Visit Google</a>
+  <a id="haloo" href="#">Visit Google</a>
 </body>`;
 
-const tokens = parseHTML(input);
-parseTree(tokens);
+const tokensRes = parseHTML(inputText);
+parseTree(tokensRes);
 printTree(0);
-// console.log(tokens);
