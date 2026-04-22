@@ -1,31 +1,65 @@
+import express from "express";
+import cors from "cors";
 import { scrapeHTML } from "./lib/scraper";
 import { parseHTML, parseTree } from "./lib/parser";
-import { searchBFS, searchDFS } from "./lib/algo"; 
+import { searchBFS, searchDFS } from "./lib/algo";
+import { getMaxDepth } from "./lib/tree";
 
-async function main() {
-  const url = "https://informatika.stei.itb.ac.id/~rinaldi.munir/";
-  const selector = "p";
-  const tipeAlgo: "BFS" | "DFS" = "BFS"; 
-  const limit =  5;
+const app = express();
+const port = 3000;
 
-  console.log(`[1] Mengambil HTML dari: ${url}`);
-  const html = await scrapeHTML(url);
-  if (!html) return;
+app.use(cors());
+app.use(express.json());
 
-  console.log("[2] Membangun DOM Tree...");
-  const tokens = parseHTML(html);
-  const nodes = parseTree(tokens);
 
-  console.log(`[3] Mencari '${selector}' dengan algoritma ${tipeAlgo}...`);
-  
-  const hasil = (tipeAlgo === "BFS") 
-    ? searchBFS(nodes, 0, selector, limit) 
-    : searchDFS(nodes, 0, selector, limit);
+app.post("/search", async (req, res) => {
+  try {
+    const { url, html: rawHtml, selector, algo, limit } = req.body;
 
-  console.log("\n--- HASIL PENCARIAN ---");
-  console.log("Waktu eksekusi :", hasil.time, "ms");
-  console.log("Node dilewati  :", hasil.visited);
-  console.log("ID ditemukan   :", hasil.results);
-}
+    console.log(`[Request] Menerima permintaan ${algo} untuk: ${url || "Manual HTML"}`);
 
-main();
+    // Ambil HTML (Dari URL atau inputan langsung)
+    let html = rawHtml;
+    if (url) {
+      html = await scrapeHTML(url);
+    }
+
+    if (!html) {
+      return res.status(400).json({ error: "Gagal mengambil atau menerima HTML" });
+    }
+
+    //Parsing jadi Tree
+    const tokens = parseHTML(html);
+    const nodes = parseTree(tokens);
+    const maxDepth = getMaxDepth(nodes, 0);
+
+    //Algoritma
+    const searchLimit = limit || 999999;
+    const result = (algo === "BFS") 
+      ? searchBFS(nodes, 0, selector, searchLimit)
+      : searchDFS(nodes, 0, selector, searchLimit);
+
+    //Kirim hasil lengkap ke Frontend
+    res.json({
+      success: true,
+      data: {
+        nodes,           
+        maxDepth,       
+        results: result.results,      
+        traversalLog: result.traversalLog, 
+        visited: result.visited,       
+        time: result.time,               
+        htmlSource: html               
+      }
+    });
+
+
+  } catch (error: any) {
+    console.error("Error:", error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.listen(port, () => {
+  console.log(`server jalan di http://localhost:${port}`);
+});

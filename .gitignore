@@ -1,5 +1,6 @@
 # Dependency (Library)
 node_modules/
+package-lock.json
 
 # Hasil kompilasi
 dist/
