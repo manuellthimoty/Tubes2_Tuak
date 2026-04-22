@@ -11,48 +11,41 @@ const port = 3000;
 app.use(cors());
 app.use(express.json());
 
-
 app.post("/search", async (req, res) => {
   try {
     const { url, html: rawHtml, selector, algo, limit } = req.body;
+    console.log(`Request ${algo} For: ${url || "HTML"}`);
 
-    console.log(`[Request] Menerima permintaan ${algo} untuk: ${url || "Manual HTML"}`);
-
-    // Ambil HTML (Dari URL atau inputan langsung)
     let html = rawHtml;
     if (url) {
       html = await scrapeHTML(url);
     }
 
     if (!html) {
-      return res.status(400).json({ error: "Gagal mengambil atau menerima HTML" });
+      return res.status(400).json({ error: "Failed got HTML" });
     }
 
-    //Parsing jadi Tree
     const tokens = parseHTML(html);
     const nodes = parseTree(tokens);
     const maxDepth = getMaxDepth(nodes, 0);
 
-    //Algoritma
     const searchLimit = limit || 999999;
     const result = (algo === "BFS") 
       ? searchBFS(nodes, 0, selector, searchLimit)
       : searchDFS(nodes, 0, selector, searchLimit);
 
-    //Kirim hasil lengkap ke Frontend
     res.json({
       success: true,
       data: {
         nodes,           
         maxDepth,       
-        results: result.results,      
-        traversalLog: result.traversalLog, 
-        visited: result.visited,       
-        time: result.time,               
-        htmlSource: html               
+        results: result.results,
+        traversalLog: result.traversalLog,
+        visited: result.visited,
+        time: result.time,
+        htmlSource: html
       }
     });
-
 
   } catch (error: any) {
     console.error("Error:", error.message);
