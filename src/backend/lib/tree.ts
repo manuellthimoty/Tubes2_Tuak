@@ -22,3 +22,16 @@ export function makeNode(
 ): treeNode {
   return { id, type, tagName, content, className, idName, parent, children: [] };
 }
+
+// Fungsi buat ngitung kedalaman pohon paling mentok (Max Depth)
+export function getMaxDepth(nodes: treeNode[], currentId: number): number {
+  const node = nodes[currentId];
+  if (!node || node.children.length === 0) return 1;
+
+  let maxChildDepth = 0;
+  for (const childId of node.children) {
+    const depth = getMaxDepth(nodes, childId);
+    if (depth > maxChildDepth) maxChildDepth = depth;
+  }
+  return 1 + maxChildDepth;
+}
