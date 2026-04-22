@@ -27,19 +27,6 @@ function stopResize() {
     resizer.style.backgroundColor = ''; 
 }
 
-// --- LOGIKA LAMA (TESTING) ---
-// searchBtn.addEventListener('click', async () => {
-//     const url = urlInput.value;
-//     const selector = selectorInput.value;
-//     const algo = algoSelect.value;
-
-//     console.log("Tombol diklik!");
-//     console.log("URL:", url);
-//     console.log("Selector:", selector);
-//     console.log("Algoritma:", algo);
-
-//     alert("Tombol sudah bekerja! Cek di Console (F12)");
-// });
 
 function drawNode(x, y, label) {
     const nodeDiv = document.createElement('div');
@@ -50,9 +37,18 @@ function drawNode(x, y, label) {
     treeContainer.appendChild(nodeDiv);
 }
 
-
 searchBtn.addEventListener('click', async () => {
-    drawNode(200, 50, "<html>");   
-    drawNode(100, 150, "<head>");  
-    drawNode(300, 150, "<body>");  
+    const url = urlInput.value;
+    const selector = selectorInput.value;
+    const algo = algoSelect.value;
+    const rawHTML = htmlInputArea.value;
+
+    treeContainer.innerHTML = '';
+
+    //buat testing aja
+    drawNode(200, 50, "Searching: " + algo);   
+    drawNode(100, 150, "Selector: " + selector);  
+    drawNode(300, 150, "Status: Ready");  
+
+    console.log("Data Ready:", { url, selector, algo, rawHTML });
 });
