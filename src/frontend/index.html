@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang = "en">
+  <head>
+    <meta charset = "utf-8">
+    <meta name = "viewport" content = "width=device-width, initial-scale=1">
+    <title> DOM Tree Visualizer</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <h1> DOM Tree Visualizer</h1>
+    <div class = "input-container">
+
+        <!-- URL input -->
+        <label for = "url-input"> Input URL: </label>
+        <input type = "text" id = "url-input" placeholder = "https://www.google.com">
+        
+        <!-- selector input -->
+        <label for= "selector-input">Choose Element:</label>
+        <input type = "text" id = "selector-input" placeholder = "button">
+
+        <!--pilih Algo-->
+        <select id = "algo-select">
+            <option value = "DFS">DFS</option>
+            <option value = "BFS">BFS</option>
+        </select>
+
+        <button id ="search-btn">Start Searching</button>
+    </div>
+
+    <div class="main-layout">
+        <!-- Panel Kiri: Sumber HTML -->
+        <div id="html-preview" class="panel">
+            <h3>HTML Source</h3>
+            <textarea id="html-input-area" placeholder="Your HTML Source"></textarea>
+        </div>
+        <div id="resizer" class="resizer"></div>
+
+        <!-- Panel Kanan: Visualisasi Pohon -->
+        <div id="tree-container" class="panel">
+            <h3>Tree Visualization</h3>
+            <div id="tree-canvas"></div>
+        </div>
+    </div>
+
+    <div id="message"></div>
+    <script src="script.js"></script>
+  </body>
+</html>
+
