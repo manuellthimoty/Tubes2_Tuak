@@ -1,49 +1,98 @@
 <!DOCTYPE html>
-<html lang = "en">
-  <head>
-    <meta charset = "utf-8">
-    <meta name = "viewport" content = "width=device-width, initial-scale=1">
-    <title> DOM Tree Visualizer</title>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DOM Tree Visualizer</title>
     <link rel="stylesheet" href="style.css">
-  </head>
-  <body>
-    <h1> DOM Tree Visualizer</h1>
-    <div class = "input-container">
+</head>
+<body>
+    <div class="app-container">
+        <h1>TUAK DOM VISUALIZER</h1>
 
-        <!-- URL input -->
-        <label for = "url-input"> Input URL: </label>
-        <input type = "text" id = "url-input" placeholder = "https://www.google.com">
-        
-        <!-- selector input -->
-        <label for= "selector-input">Choose Element:</label>
-        <input type = "text" id = "selector-input" placeholder = "button">
+        <!--INPUT & PARSE -->
+        <div class="panel step-panel" id="step1-panel">
+            <div class="panel-title">1. Input HTML</div>
+            <div class="input-row">
+                <div class="input-col">
+                    <label>URL (Link)</label>
+                    <input type="text" id="url-input" placeholder="https://example.com">
+                </div>
+                <div class="input-col">
+                    <label>Raw HTML (Optional)</label>
+                    <textarea id="html-input" rows="3" placeholder="Atau paste kode HTML di sini..."></textarea>
+                </div>
+                <button id="parse-btn" type="button" class="action-btn">Parse</button>
+            </div>
+        </div>
 
-        <!--pilih Algo-->
-        <select id = "algo-select">
-            <option value = "DFS">DFS</option>
-            <option value = "BFS">BFS</option>
-        </select>
+        <!-- TRAVERSAL CONTROLS -->
+        <div class="panel step-panel disabled" id="step2-panel">
+            <div class="panel-title">2. Traversal Options</div>
+            <div class="control-row">
+                <div class="control-item">
+                    <label>CSS Selector</label>
+                    <input type="text" id="selector-input" placeholder="div, .class, #id, div.foo">
+                </div>
+                <div class="control-item">
+                    <label>Algorithm</label>
+                    <select id="algo-select" title="Pilih algoritma traversal">
+                        <option value="BFS">BFS</option>
+                        <option value="DFS">DFS</option>
+                    </select>
+                </div>
+                <div class="control-item">
+                    <label>Hasil Ditampilkan</label>
+                    <div class="limit-controls">
+                        <label class="radio-label">
+                            <input type="radio" name="limit-type" value="all" checked> Semua
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="limit-type" value="topn"> Top
+                            <input type="number" id="limit-n" value="10" min="1" class="limit-n-input" disabled>
+                        </label>
+                    </div>
+                </div>
+                <div class="control-item">
+                    <label>Kecepatan Animasi</label>
+                    <select id="speed-select" title="Kecepatan animasi traversal">
+                        <option value="100">Lambat (100ms)</option>
+                        <option value="20" selected>Normal (20ms)</option>
+                        <option value="5">Cepat (5ms)</option>
+                        <option value="0">Instan</option>
+                    </select>
+                </div>
+                <button id="traverse-btn" type="button" class="action-btn" disabled>Traverse</button>
+            </div>
+        </div>
 
-        <button id ="search-btn">Start Searching</button>
+        <!-- VISUALIZATION & LOG -->
+        <div class="workspace">
+            <div class="tree-section panel">
+                <div class="tree-header">
+                    <div class="panel-title" style="margin-bottom:0">DOM Tree</div>
+                    <div class="zoom-controls">
+                        <button id="zoom-out-btn" class="zoom-btn" title="Zoom Out">−</button>
+                        <span id="zoom-label">100%</span>
+                        <button id="zoom-in-btn" class="zoom-btn" title="Zoom In">+</button>
+                        <button id="zoom-reset-btn" class="zoom-btn" title="Reset Zoom">⟳</button>
+                    </div>
+                </div>
+                <div id="tree-viewport">
+                    <div id="tree-canvas"></div>
+                </div>
+            </div>
+
+            <div class="log-section panel">
+                <div class="panel-title">Traversal Log</div>
+                <div class="stats-info" id="stats-info">Nodes: 0 | Depth: 0</div>
+                <ul id="log-list">
+                    <li class="log-placeholder">Log penelusuran akan muncul di sini...</li>
+                </ul>
+            </div>
+        </div>
     </div>
 
-    <div class="main-layout">
-        <!-- Panel Kiri: Sumber HTML -->
-        <div id="html-preview" class="panel">
-            <h3>HTML Source</h3>
-            <textarea id="html-input-area" placeholder="Your HTML Source"></textarea>
-        </div>
-        <div id="resizer" class="resizer"></div>
-
-        <!-- Panel Kanan: Visualisasi Pohon -->
-        <div id="tree-container" class="panel">
-            <h3>Tree Visualization</h3>
-            <div id="tree-canvas"></div>
-        </div>
-    </div>
-
-    <div id="message"></div>
     <script src="script.js"></script>
-  </body>
+</body>
 </html>
-
