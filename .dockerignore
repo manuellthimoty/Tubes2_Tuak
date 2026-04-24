@@ -1,0 +1,9 @@
+.git
+.gitignore
+bin
+doc
+src.zip
+test.html
+**/node_modules
+**/npm-debug.log
+**/.DS_Store
