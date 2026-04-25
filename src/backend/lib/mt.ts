@@ -1,38 +1,12 @@
-/**
- * mt.ts — Multithreaded BFS/DFS dengan Worker Pool.
- *
- * Masalah desain sebelumnya:
- * - Setiap request spawn Worker baru -> overhead ~100-300ms per worker
- * - Seluruh nodes[] di-serialize (clone) ke setiap worker -> ratusan KB
- *   dikirim 4x, padahal computation BFS/DFS sendiri hanya ~2-5ms
- * - Hasilnya MT jauh lebih lambat dari single-thread untuk pohon kecil/sedang
- *
- * Solusi:
- * 1. Worker Pool — worker dibuat SEKALI saat startup, di-reuse untuk setiap request.
- *    Menghilangkan overhead spawn (~100-300ms) dari hot path.
- * 2. SharedArrayBuffer — nodes[] di-encode ke typed array dan di-share ke worker
- *    tanpa copy (zero-copy via transferable). Menghilangkan serialize overhead.
- *
- * Karena SharedArrayBuffer membutuhkan perancangan encoding khusus dan
- * Node.js Worker Pool tidak tersedia built-in, kita pakai pendekatan praktis:
- * - Pool sederhana: N worker tetap, request di-queue, worker di-reuse via message passing.
- * - Pohon DOM di-encode ke flat Int32Array (compact, transferable).
- *
- * Jika pohon < MIN_NODES_FOR_MT: langsung fallback ke single-thread.
- * (Untuk pohon kecil, overhead apapun lebih besar dari komputasi.)
- */
-
 import { Worker, isMainThread, parentPort, workerData } from "worker_threads";
 import * as path from "path";
 import { treeNode } from "./tree";
 import { searchBFS, searchDFS } from "./algo";
 
-// ─── Konfigurasi ──────────────────────────────────────────────────────────────
 const N_WORKERS        = 4;
 const SPLIT_DEPTH      = 3;
 const MIN_NODES_FOR_MT = 500;   // di bawah ini single-thread selalu lebih cepat
 
-// ─── Worker Pool ──────────────────────────────────────────────────────────────
 interface PoolWorker {
   worker:  Worker;
   busy:    boolean;
@@ -65,7 +39,7 @@ function makePoolWorker(): PoolWorker {
   const wp = workerScriptPath();
   const execArgv = wp.endsWith(".ts") ? ["--require", "ts-node/register"] : [];
 
-  // Worker pool menggunakan mode "persistent" — worker tetap hidup dan menunggu pesan
+  // pool mode: worker standby
   const worker = new Worker(wp, {
     workerData: { poolMode: true },
     execArgv,
@@ -74,7 +48,7 @@ function makePoolWorker(): PoolWorker {
   const pw: PoolWorker = { worker, busy: false, resolve: null, reject: null };
 
   worker.on("message", (result: WorkerResult) => {
-    // Worker selesai — selesaikan promise dan coba ambil task berikutnya
+    // selesai, ambil task berikutnya
     const res = pw.resolve;
     pw.resolve = null;
     pw.reject  = null;
@@ -126,7 +100,6 @@ function runWorker(task: WorkerTask): Promise<WorkerResult> {
   });
 }
 
-// ─── Frontier Collection ──────────────────────────────────────────────────────
 function collectFrontier(
   nodes:      treeNode[],
   splitDepth: number
@@ -152,7 +125,6 @@ function collectFrontier(
   return { frontierLog, frontier };
 }
 
-// ─── Main Export ──────────────────────────────────────────────────────────────
 export async function searchMT(
   nodes:    treeNode[],
   selector: string,
@@ -161,7 +133,7 @@ export async function searchMT(
 ): Promise<{ results: number[]; traversalLog: number[]; visited: number; time: number; threads: number }> {
   const start = performance.now();
 
-  // Fallback untuk pohon kecil — overhead worker selalu lebih mahal
+  // pohon kecil, pakai single-thread
   if (nodes.length < MIN_NODES_FOR_MT) {
     const r = algo === "BFS"
       ? searchBFS(nodes, 0, selector, topN)
@@ -172,12 +144,11 @@ export async function searchMT(
   // Kumpulkan frontier
   const { frontierLog, frontier } = collectFrontier(nodes, SPLIT_DEPTH);
 
-  // Bagi frontier ke N_WORKERS bucket (round-robin)
+  // bagi frontier ke N_WORKERS bucket (round-robin)
   const buckets: number[][] = Array.from({ length: N_WORKERS }, () => []);
   frontier.forEach((id, i) => buckets[i % N_WORKERS].push(id));
 
-  // Kirim setiap bucket ke satu worker
-  // Worker memproses semua startId dalam bucket-nya secara serial
+  // tiap bucket dijalankan satu worker
   const workerPromises = buckets
     .filter(b => b.length > 0)
     .map(bucket =>

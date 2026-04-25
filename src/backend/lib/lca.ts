@@ -1,34 +1,23 @@
 import { treeNode } from "./tree";
 
-/**
- * LCA dengan Binary Lifting.
- *
- * Preprocessing O(N log N), query O(log N).
- * LOG_BITS = 17 → mendukung pohon hingga 2^17 = 131072 node.
- */
 const LOG_BITS = 17;
 
 export interface LCATable {
-  depth:  number[];      // depth[v]    = kedalaman node v dari root
-  up:     number[][];    // up[k][v]    = 2^k-th ancestor node v (-1 jika tidak ada)
+  depth:  number[];      // depth[v]   
+  up:     number[][];    // up[k][v]   =
   n:      number;
 }
 
-/**
- * Bangun tabel Binary Lifting dari array treeNode.
- * Menggunakan BFS iteratif untuk menghindari stack overflow pada pohon dalam.
- */
 export function buildLCATable(nodes: treeNode[]): LCATable {
   const n = nodes.length;
   const depth = new Array<number>(n).fill(0);
-  // up[k][v] — baris = level k, kolom = node id
   const up: number[][] = Array.from({ length: LOG_BITS }, () => new Array<number>(n).fill(-1));
 
-  // BFS dari root (id = 0)
-  const visited = new Uint8Array(n);   // lebih efisien dari boolean[]
+  // BFS dari root
+  const visited = new Uint8Array(n);
   const queue: number[] = [0];
   visited[0]  = 1;
-  up[0][0]    = 0;  // root adalah parent dirinya sendiri di level 0
+  up[0][0]    = 0;
 
   while (queue.length > 0) {
     const u = queue.shift()!;
@@ -42,7 +31,7 @@ export function buildLCATable(nodes: treeNode[]): LCATable {
     }
   }
 
-  // Isi tabel sparse: up[k][v] = up[k-1][ up[k-1][v] ]
+  // bangun sparse table
   for (let k = 1; k < LOG_BITS; k++) {
     for (let v = 0; v < n; v++) {
       const p = up[k - 1][v];
@@ -53,10 +42,6 @@ export function buildLCATable(nodes: treeNode[]): LCATable {
   return { depth, up, n };
 }
 
-/**
- * Query LCA dari dua node u dan v.
- * Mengembalikan: id LCA, path u→LCA, path v→LCA, depth masing-masing.
- */
 export function queryLCA(
   table: LCATable,
   uIn: number,
@@ -72,15 +57,14 @@ export function queryLCA(
   const { depth, up } = table;
   let u = uIn, v = vIn;
 
-  // Rekam jalur naik selama leveling & lifting
   const pathU: number[] = [];
   const pathV: number[] = [];
 
-  // Pastikan depth[u] >= depth[v]
+  // pastikan u lebih dalam
   const swapped = depth[u] < depth[v];
   if (swapped) { [u, v] = [v, u]; }
 
-  // Leveling: naikkan u setinggi depth[v]
+  // leveling
   let diff = depth[u] - depth[v];
   pathU.push(u);
   for (let k = 0; k < LOG_BITS; k++) {
@@ -91,7 +75,6 @@ export function queryLCA(
   }
 
   if (u === v) {
-    // v adalah ancestor langsung dari u
     const lcaId = v;
     if (swapped) {
       return {
@@ -113,7 +96,7 @@ export function queryLCA(
     };
   }
 
-  // Lifting bersama hingga tepat di bawah LCA
+  // binary lifting
   pathV.push(v);
   for (let k = LOG_BITS - 1; k >= 0; k--) {
     if (up[k][u] !== up[k][v]) {
@@ -147,9 +130,6 @@ export function queryLCA(
   };
 }
 
-/**
- * Rekonstruksi path dari root ke suatu node (untuk context UI).
- */
 export function pathFromRoot(table: LCATable, nodeId: number): number[] {
   const { up } = table;
   const path: number[] = [];

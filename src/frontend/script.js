@@ -1,3 +1,7 @@
+const API_BASE = window.location.hostname
+  ? `${window.location.protocol}//${window.location.hostname}:3000`
+  : 'http://localhost:3000';
+
 const urlInput      = document.getElementById('url-input');
 const htmlInput     = document.getElementById('html-input');
 const parseBtn      = document.getElementById('parse-btn');
@@ -24,12 +28,9 @@ let currentNodesData = [];
 let nodeElements     = {};
 let zoomLevel        = 1.0;
 
-// LCA state (client-side hanya untuk UI / pemilihan node)
 let lcaMode     = false;
-let lcaSelected = [];   // [nodeId, nodeId]
+let lcaSelected = [];  
 
-// Binary Lifting table (dibangun di FE untuk keperluan depth tooltip saja;
-// komputasi LCA sebenarnya dilakukan di backend)
 const LOG_BITS = 16;
 let lcaDepth   = [];
 let lcaParent  = [];
@@ -38,15 +39,12 @@ const ZOOM_MIN        = 0.2;
 const ZOOM_MAX        = 3.0;
 const ZOOM_STEP_BTN   = 0.2;
 const ZOOM_STEP_WHEEL = 0.08;
-// MAX_VISUAL_NODES dihapus — semua node di-render tanpa batas
 const MAX_LOG_ENTRIES  = 500;
 
-// ─── Speed Slider ─────────────────────────────────────────────────────────────
 speedSelect.addEventListener('input', () => {
     speedLabel.textContent = speedSelect.value + 'ms';
 });
 
-// ─── Zoom ─────────────────────────────────────────────────────────────────────
 function applyZoom() {
     treeContainer.style.transform = `scale(${zoomLevel})`;
     const baseW = parseInt(treeContainer.style.width)  || 3000;
@@ -80,7 +78,6 @@ treeViewport.addEventListener('wheel', (e) => {
         e.clientX - rect.left, e.clientY - rect.top);
 }, { passive: false });
 
-// ─── Pan ──────────────────────────────────────────────────────────────────────
 let isPanning = false;
 let panStart  = { x: 0, y: 0, sl: 0, st: 0 };
 
@@ -101,16 +98,12 @@ window.addEventListener('mouseup', () => {
     if (!isPanning) return;
     isPanning = false;
     treeViewport.style.cursor = 'grab';
-});
-
-// ─── Limit Radio ──────────────────────────────────────────────────────────────
+});
 document.querySelectorAll('input[name="limit-type"]').forEach(radio => {
     radio.addEventListener('change', () => {
         limitNInput.disabled = radio.value !== 'topn';
     });
-});
-
-// ─── Parse ────────────────────────────────────────────────────────────────────
+});
 parseBtn.addEventListener('click', async () => {
     const url     = urlInput.value.trim();
     const rawHTML = htmlInput.value.trim();
@@ -130,10 +123,8 @@ parseBtn.addEventListener('click', async () => {
     const es = document.getElementById('empty-state');
     if (es) es.style.display = 'none';
 
-    try {
-        // Gunakan endpoint /parse — mengembalikan nodes[] + metadata
-        // /search tidak lagi mengembalikan nodes[] agar response lebih kecil
-        const response = await fetch('http://40.83.103.237:3000/parse', {
+    try {
+        const response = await fetch(`${API_BASE}/parse`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url, html: rawHTML })
@@ -145,9 +136,7 @@ parseBtn.addEventListener('click', async () => {
             savedHtmlSource  = data.htmlSource || rawHTML;
             currentNodesData = data.nodes;
 
-            if (url && data.htmlSource) htmlInput.value = data.htmlSource;
-
-            // Bangun LCA table di FE untuk depth info (tooltip node)
+            if (url && data.htmlSource) htmlInput.value = data.htmlSource;
             buildLCAFrontend(data.nodes);
 
             visualizeTree(data.nodes);
@@ -157,7 +146,7 @@ parseBtn.addEventListener('click', async () => {
                  <span class="stat-divider">|</span>
                  <span class="stat-item">Max Depth: ${data.maxDepth}</span>`;
 
-            logList.innerHTML = '<li class="log-placeholder">✅ Parsing sukses! Pilih algoritma lalu klik Traverse.</li>';
+            logList.innerHTML = '<li class="log-placeholder">Parsing sukses! Pilih algoritma lalu klik Traverse.</li>';
             step2Panel.classList.remove('disabled');
             traverseBtn.disabled = false;
             lcaBtn.disabled      = false;
@@ -165,14 +154,12 @@ parseBtn.addEventListener('click', async () => {
             alert("Gagal parse: " + result.error);
         }
     } catch(e) {
-        alert("Koneksi ke backend gagal. Pastikan server sudah berjalan di port 3000.\n\n" + e);
+        alert(`Koneksi ke backend gagal.\nURL: ${API_BASE}\n\n` + e);
     } finally {
         parseBtn.innerText = "Parse";
         parseBtn.disabled  = false;
     }
-});
-
-// ─── Traverse ─────────────────────────────────────────────────────────────────
+});
 traverseBtn.addEventListener('click', async () => {
     const selector = selectorInput.value.trim();
     const algo     = algoSelect.value;
@@ -183,9 +170,7 @@ traverseBtn.addEventListener('click', async () => {
     }
 
     const limitType = document.querySelector('input[name="limit-type"]:checked').value;
-    const limit     = limitType === 'topn' ? Math.max(1, parseInt(limitNInput.value) || 10) : 0;
-
-    // Cek apakah multithreading aktif
+    const limit     = limitType === 'topn' ? Math.max(1, parseInt(limitNInput.value) || 10) : 0;
     const mtCheckbox = document.getElementById('mt-checkbox');
     const useMT      = mtCheckbox ? mtCheckbox.checked : false;
 
@@ -196,7 +181,7 @@ traverseBtn.addEventListener('click', async () => {
     resetAllNodes();
 
     try {
-        const response = await fetch('http://40.83.103.237:3000/search', {
+        const response = await fetch(`${API_BASE}/search`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -210,17 +195,16 @@ traverseBtn.addEventListener('click', async () => {
 
         const result = await response.json();
         if (result.success) {
-            const data = result.data;
-            // /search tidak mengembalikan nodes[] — currentNodesData sudah diisi saat /parse
+            const data = result.data;
             await animateAndLog(data.traversalLog, data.results);
 
             const threads = data.threads || 1;
             const summary = document.createElement('li');
             summary.innerHTML =
-                `<b>✅ Selesai!</b> Ditemukan <b>${data.results.length}</b> kecocokan ` +
+                `<b>Selesai!</b> Ditemukan <b>${data.results.length}</b> kecocokan ` +
                 `dari <b>${data.visited}</b> node dikunjungi. ` +
                 `Waktu: <b>${data.time.toFixed(2)}ms</b>` +
-                (threads > 1 ? ` | Threads: <b>${threads}</b> 🔀` : '');
+                (threads > 1 ? ` | Threads: <b>${threads}</b>` : '');
             summary.style.cssText = 'margin-top:10px;text-align:center;padding:8px;background:#e8f5e0;border-radius:6px;';
             logList.appendChild(summary);
             logList.scrollTop = logList.scrollHeight;
@@ -233,9 +217,7 @@ traverseBtn.addEventListener('click', async () => {
         traverseBtn.innerText = "Traverse";
         traverseBtn.disabled  = false;
     }
-});
-
-// ─── LCA Button ───────────────────────────────────────────────────────────────
+});
 lcaBtn.addEventListener('click', () => {
     if (!lcaMode) {
         lcaMode     = true;
@@ -243,7 +225,7 @@ lcaBtn.addEventListener('click', () => {
         lcaStatusBar.style.display = 'flex';
         resetAllNodes();
         updateLCAChips();
-        logList.innerHTML = '<li class="log-placeholder">🌿 Mode LCA — Klik 2 node pada pohon lalu tekan <b>Traverse LCA</b>.</li>';
+        logList.innerHTML = '<li class="log-placeholder"> Mode LCA — Klik 2 node pada pohon lalu tekan <b>Traverse LCA</b>.</li>';
     } else {
         if (lcaSelected.length < 2) {
             alert("Pilih 2 node pada pohon terlebih dahulu!");
@@ -262,9 +244,7 @@ function exitLCAMode() {
     lcaMode     = false;
     lcaSelected = [];
     lcaStatusBar.style.display = 'none';
-}
-
-// ─── Node Click (LCA selection) ───────────────────────────────────────────────
+}
 function attachNodeClickHandler(id, el) {
     el.addEventListener('click', (e) => {
         if (!lcaMode) return;
@@ -295,16 +275,12 @@ function updateLCAChips() {
     lcaChip2.innerHTML = `Node 2: <span>${tag1}</span>`;
     lcaChip1.classList.toggle('filled', n0 !== undefined);
     lcaChip2.classList.toggle('filled', n1 !== undefined);
-}
-
-// ─── Reset Node Styles ────────────────────────────────────────────────────────
+}
 function resetAllNodes() {
     Object.values(nodeElements).forEach(el => {
         el.className = 'node-container';
     });
-}
-
-// ─── Binary Lifting (Frontend) — hanya untuk depth info tooltip ──────────────
+}
 function buildLCAFrontend(nodes) {
     const n = nodes.length;
     lcaDepth  = new Array(n).fill(0);
@@ -332,23 +308,18 @@ function buildLCAFrontend(nodes) {
             lcaParent[k][v] = p === -1 ? -1 : lcaParent[k-1][p];
         }
     }
-}
-
-// ─── runLCA — memanggil backend endpoint /lca ────────────────────────────────
+}
 async function runLCA() {
     const [u, v] = lcaSelected;
-    const delay  = parseInt(speedSelect.value);
-
-    // Tampilkan loading di log
+    const delay  = parseInt(speedSelect.value);
     logList.innerHTML = '';
     const loadingItem = document.createElement('li');
-    loadingItem.innerHTML = `<b>⏳ Menghitung LCA</b> untuk Node <b>#${u}</b> &amp; Node <b>#${v}</b>...`;
+    loadingItem.innerHTML = `<b>Menghitung LCA</b> untuk Node <b>#${u}</b> &amp; Node <b>#${v}</b>...`;
     loadingItem.style.cssText = 'padding:6px;background:#e8f5e0;border-radius:6px;margin-bottom:4px;text-align:center;';
     logList.appendChild(loadingItem);
 
-    try {
-        // ── Panggil backend /lca ──────────────────────────────────────────────
-        const response = await fetch('http://40.83.103.237:3000/lca', {
+    try {
+        const response = await fetch(`${API_BASE}/lca`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -367,20 +338,16 @@ async function runLCA() {
         }
 
         const { lca, lcaTag, lcaDepth: depthLCA, depthU, depthV,
-                pathU, pathV, pathURoot, pathVRoot, time } = result.data;
-
-        // ── Animasikan path di pohon ──────────────────────────────────────────
+                pathU, pathV, pathURoot, pathVRoot, time } = result.data;
         resetAllNodes();
         logList.innerHTML = '';
 
         const header = document.createElement('li');
         header.innerHTML =
-            `<b>🌿 LCA Binary Lifting</b> — Node <b>#${u}</b> ` +
+            `<b>LCA Binary Lifting</b> — Node <b>#${u}</b> ` +
             `(depth:${depthU}) &amp; Node <b>#${v}</b> (depth:${depthV})`;
         header.style.cssText = 'padding:6px;background:#e8f5e0;border-radius:6px;margin-bottom:4px;text-align:center;';
-        logList.appendChild(header);
-
-        // Animasi path U → LCA
+        logList.appendChild(header);
         for (const id of pathU) {
             if (id === lca) continue;   // LCA ditampilkan terakhir
             if (nodeElements[id]) {
@@ -388,9 +355,7 @@ async function runLCA() {
                 addLogItem(`↑ Path U: Node #${id} &lt;${currentNodesData[id]?.tagName}&gt;`, '#5a8a3a');
                 if (delay > 0) await sleep(delay);
             }
-        }
-
-        // Animasi path V → LCA
+        }
         for (const id of pathV) {
             if (id === lca) continue;
             if (nodeElements[id]) {
@@ -398,9 +363,7 @@ async function runLCA() {
                 addLogItem(`↑ Path V: Node #${id} &lt;${currentNodesData[id]?.tagName}&gt;`, '#3a7a8a');
                 if (delay > 0) await sleep(delay);
             }
-        }
-
-        // Node u dan v tetap kuning
+        }
         if (nodeElements[u]) {
             nodeElements[u].classList.remove('node-lca-path');
             nodeElements[u].classList.add('node-lca-selected');
@@ -408,15 +371,11 @@ async function runLCA() {
         if (nodeElements[v]) {
             nodeElements[v].classList.remove('node-lca-path');
             nodeElements[v].classList.add('node-lca-selected');
-        }
-
-        // LCA di-highlight merah/bintang
+        }
         if (nodeElements[lca]) {
             nodeElements[lca].classList.remove('node-lca-path', 'node-lca-selected');
             nodeElements[lca].classList.add('node-lca-result');
-        }
-
-        // ── Breadcrumb path root → u dan root → v ────────────────────────────
+        }
         const breadcrumbU = pathURoot.map(id =>
             `<span class="bc-item">#${id}&lt;${currentNodesData[id]?.tagName}&gt;</span>`
         ).join(' › ');
@@ -429,12 +388,10 @@ async function runLCA() {
             `<div style="font-size:11px;margin-top:6px;color:#666">` +
             `<b>Root → U:</b> ${breadcrumbU}<br>` +
             `<b>Root → V:</b> ${breadcrumbV}</div>`;
-        logList.appendChild(breadcrumbLi);
-
-        // ── Summary ───────────────────────────────────────────────────────────
+        logList.appendChild(breadcrumbLi);
         const resultLi = document.createElement('li');
         resultLi.innerHTML =
-            `<b>✅ LCA ditemukan:</b> Node <b>#${lca}</b> ` +
+            `<b>LCA ditemukan:</b> Node <b>#${lca}</b> ` +
             `&lt;${lcaTag}&gt; (Depth: ${depthLCA}) | ` +
             `Waktu: <b>${time.toFixed(3)}ms</b>`;
         resultLi.style.cssText =
@@ -444,7 +401,7 @@ async function runLCA() {
         logList.scrollTop = logList.scrollHeight;
 
     } catch(e) {
-        alert("Koneksi ke backend gagal saat menghitung LCA.\n\n" + e);
+        alert(`Koneksi ke backend gagal saat menghitung LCA.\nURL: ${API_BASE}\n\n` + e);
     }
 
     exitLCAMode();
@@ -460,20 +417,11 @@ function addLogItem(html, color = '#333') {
 
 function sleep(ms) {
     return new Promise(r => setTimeout(r, ms));
-}
-
-// ─── Visualize Tree ───────────────────────────────────────────────────────────
-// FIX: Tidak ada batas node — semua node di-render tanpa MAX_VISUAL_NODES.
-// Seluruh logika (calcSubtreeWidth + posisi) diubah ke iteratif agar
-// tidak ada rekursi yang bisa stack overflow pada pohon besar/dalam.
+}
 function visualizeTree(nodes) {
     const NODE_W  = 110;
     const LEVEL_H = 90;
-    nodeElements  = {};
-
-    // ── STEP 1: Hitung subtreeWidth iteratif (post-order via DFS reverse) ─────
-    // Traversal DFS mengumpulkan urutan kunjungan, lalu hitung width dari
-    // daun ke root (reverse order) sehingga parent selalu dihitung setelah anak.
+    nodeElements  = {};
     const visitOrder = [];
     {
         const stk = [0];
@@ -495,19 +443,15 @@ function visualizeTree(nodes) {
             for (const cid of node.children) total += (nodes[cid]?.subtreeWidth || NODE_W + 20);
             node.subtreeWidth = Math.max(total, NODE_W + 20);
         }
-    }
-
-    // ── STEP 2: Set ukuran canvas ─────────────────────────────────────────────
+    }
     const totalWidth  = Math.max(3000, (nodes[0].subtreeWidth || 3000) + 200);
     const maxD        = lcaDepth.length > 1 ? Math.max(...lcaDepth) : 20;
-    const totalHeight = Math.max(3000, (maxD + 3) * (LEVEL_H + 10));
+    const TOP_PAD    = 120;
+    const totalHeight = Math.max(3000, (maxD + 3) * (LEVEL_H + 10) + TOP_PAD);
     treeContainer.style.width  = totalWidth + 'px';
-    treeContainer.style.height = totalHeight + 'px';
-
-    // ── STEP 3: Assign koordinat & buat elemen DOM — BFS iteratif ────────────
-    // BFS menjamin parent sudah punya x,y sebelum anak dihitung.
+    treeContainer.style.height = totalHeight + 'px';
     nodes[0].x = Math.max(1500, (nodes[0].subtreeWidth || 3000) / 2);
-    nodes[0].y = 20;
+    nodes[0].y = TOP_PAD;
 
     const bfsQ = [0];
     while (bfsQ.length > 0) {
@@ -515,22 +459,18 @@ function visualizeTree(nodes) {
         const node = nodes[id];
         if (!node) continue;
 
-        const isRoot = id === 0;
-
-        // Buat elemen DOM untuk semua node kecuali root
+        const isRoot = id === 0;
         if (!isRoot) {
             const div = document.createElement('div');
             div.className = 'node-container';
-            div.style.left = (node.x - 50) + 'px';
-            div.style.top  = node.y + 'px';
+            div.style.left = Math.round(node.x - 50) + 'px';
+            div.style.top  = Math.round(node.y) + 'px';
             div.title      = `<${node.tagName}> (ID: ${id}, Depth: ${lcaDepth[id] ?? '?'})`;
             div.innerText  = `<${node.tagName}>`;
             treeContainer.appendChild(div);
             nodeElements[id] = div;
             attachNodeClickHandler(id, div);
-        }
-
-        // Hitung dan assign posisi anak
+        }
         const childY = isRoot ? node.y : node.y + LEVEL_H;
         let curX     = node.x - (node.subtreeWidth || NODE_W + 20) / 2;
         for (const cid of node.children) {
@@ -559,16 +499,14 @@ function drawLines() {
             const midY  = (node.y + 30 + child.y) / 2;
             const path  = document.createElementNS("http://www.w3.org/2000/svg", "path");
             path.setAttribute("d",
-                `M ${node.x} ${node.y + 30} L ${node.x} ${midY} L ${child.x} ${midY} L ${child.x} ${child.y}`);
-            path.setAttribute("stroke", "#c5dfc0");
+                `M ${Math.round(node.x)} ${Math.round(node.y + 30)} L ${Math.round(node.x)} ${Math.round(midY)} L ${Math.round(child.x)} ${Math.round(midY)} L ${Math.round(child.x)} ${Math.round(child.y)}`);
+            path.setAttribute("stroke", "#333");
             path.setAttribute("stroke-width", "1.5");
             path.setAttribute("fill", "none");
             svg.appendChild(path);
         }
     }
-}
-
-// ─── Animate & Log (Traverse) ─────────────────────────────────────────────────
+}
 async function animateAndLog(logIds, targetIds) {
     const delay   = parseInt(speedSelect.value);
     const targets = new Set(targetIds);
@@ -591,7 +529,7 @@ async function animateAndLog(logIds, targetIds) {
         if (step <= MAX_LOG_ENTRIES) {
             const li = document.createElement('li');
             li.className = isMatch ? 'log-item-match' : 'log-item-visit';
-            li.innerText = `[${step}] <${node.tagName}> (ID:${id})${isMatch ? " ✅ MATCH!" : ""}`;
+            li.innerText = `[${step}] <${node.tagName}> (ID:${id})${isMatch ? " [MATCH]" : ""}`;
             logList.appendChild(li);
             logList.scrollTop = logList.scrollHeight;
         } else if (step === MAX_LOG_ENTRIES + 1) {

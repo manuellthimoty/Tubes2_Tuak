@@ -10,7 +10,7 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- HEADER -->
+        
         <header class="app-header">
             <div class="header-left">
                 <div class="header-logo brand-logos">
@@ -30,11 +30,11 @@
             </div>
         </header>
 
-        <!-- STEP 1: INPUT & PARSE -->
+        
         <div class="panel step-panel" id="step1-panel">
             <div class="panel-title">
                 <span class="panel-icon">
-                    <!-- Link/URL icon -->
+                    
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                         <path d="M6.5 9.5a4 4 0 0 0 5.657 0l1.414-1.414a4 4 0 0 0-5.657-5.657L6.5 3.843" stroke="#3d7a35" stroke-width="1.5" stroke-linecap="round"/>
                         <path d="M9.5 6.5a4 4 0 0 0-5.657 0L2.43 7.914a4 4 0 0 0 5.657 5.657L9.5 12.157" stroke="#3d7a35" stroke-width="1.5" stroke-linecap="round"/>
@@ -72,11 +72,11 @@
             </div>
         </div>
 
-        <!-- STEP 2: TRAVERSAL CONTROLS -->
+        
         <div class="panel step-panel disabled" id="step2-panel">
             <div class="panel-title">
                 <span class="panel-icon">
-                    <!-- Settings / sliders icon -->
+                    
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                         <path d="M2 4h12M2 8h12M2 12h12" stroke="#3d7a35" stroke-width="1.5" stroke-linecap="round"/>
                         <circle cx="5" cy="4" r="1.8" fill="#fff" stroke="#3d7a35" stroke-width="1.2"/>
@@ -138,7 +138,7 @@
                         Kecepatan Animasi: <span id="speed-label" style="color:#f9a825;margin-left:4px;font-family:'JetBrains Mono',monospace">20ms</span>
                     </label>
                     <input type="range" id="speed-select" min="1" max="100" value="20" class="speed-slider" title="Geser untuk mengatur kecepatan animasi">
-                    <div class="speed-hint"><span>⚡ Cepat (1ms)</span><span>🐢 Lambat (100ms)</span></div>
+                    <div class="speed-hint"><span>Cepat (1ms)</span><span>Lambat (100ms)</span></div>
                 </div>
                 <div class="btn-group">
                     <label class="mt-toggle" title="Aktifkan multithreading (Worker Threads) untuk BFS/DFS">
@@ -173,7 +173,7 @@
             </div>
         </div>
 
-        <!-- LCA STATUS BAR -->
+        
         <div class="lca-status-bar" id="lca-status-bar" style="display:none">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="4" r="2.5" stroke="#3d7a35" stroke-width="1.5"/><circle cx="3" cy="13" r="2" stroke="#3d7a35" stroke-width="1.3"/><circle cx="13" cy="13" r="2" stroke="#3d7a35" stroke-width="1.3"/><path d="M8 6.5v3M5.5 11L3 11M10.5 11L13 11" stroke="#3d7a35" stroke-width="1.3" stroke-linecap="round"/></svg>
             <span id="lca-status-text">Mode LCA aktif — Klik <b>2 node</b> pada pohon DOM, lalu tekan <b>Traverse LCA</b></span>
@@ -181,16 +181,16 @@
                 <div class="lca-chip" id="lca-chip-1">Node 1: <span>—</span></div>
                 <div class="lca-chip" id="lca-chip-2">Node 2: <span>—</span></div>
             </div>
-            <button class="lca-cancel-btn" id="lca-cancel-btn">✕ Batal</button>
+            <button class="lca-cancel-btn" id="lca-cancel-btn">X Batal</button>
         </div>
 
-        <!-- VISUALIZATION & LOG -->
+        
         <div class="workspace">
             <div class="tree-section panel">
                 <div class="tree-header">
                     <div class="panel-title" style="margin-bottom:0">
                         <span class="panel-icon">
-                            <!-- Branch/tree icon -->
+                            
                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                                 <circle cx="8" cy="3" r="2" fill="#3d7a35"/>
                                 <circle cx="4" cy="10" r="2" fill="#8fca7a"/>
@@ -206,13 +206,13 @@
                         <button id="zoom-out-btn" class="zoom-btn" title="Zoom Out">−</button>
                         <span id="zoom-label">100%</span>
                         <button id="zoom-in-btn" class="zoom-btn" title="Zoom In">+</button>
-                        <button id="zoom-reset-btn" class="zoom-btn" title="Reset Zoom">⟳</button>
+                        <button id="zoom-reset-btn" class="zoom-btn" title="Reset Zoom">&#8635;</button>
                     </div>
                 </div>
                 <div id="tree-viewport">
                     <div id="tree-canvas"></div>
                 </div>
-                <!-- Empty state -->
+                
                 <div class="empty-state" id="empty-state">
                     <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
                         <circle cx="30" cy="12" r="7" fill="#e8f5e0" stroke="#8fca7a" stroke-width="2"/>
@@ -229,7 +229,7 @@
             <div class="log-section panel">
                 <div class="panel-title">
                     <span class="panel-icon">
-                        <!-- List/log icon -->
+                        
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                             <rect x="2" y="2" width="12" height="12" rx="2" stroke="#3d7a35" stroke-width="1.4"/>
                             <path d="M5 5.5h6M5 8h4M5 10.5h5" stroke="#3d7a35" stroke-width="1.3" stroke-linecap="round"/>
@@ -259,13 +259,5 @@
 
     </div>
     <script src="script.js"></script>
-    <script>
-        // Hide empty state once tree is rendered
-        const origVisualize = window.visualizeTree;
-        document.getElementById('parse-btn').addEventListener('click', function() {
-            const es = document.getElementById('empty-state');
-            if (es) es.style.display = 'none';
-        });
-    </script>
 </body>
 </html>

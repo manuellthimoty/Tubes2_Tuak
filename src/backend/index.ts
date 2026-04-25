@@ -12,17 +12,10 @@ const host = process.env.HOST || "0.0.0.0";
 const port = Number(process.env.PORT) || 3000;
 
 app.use(cors());
-// Limit 10mb agar HTML besar tidak ditolak (default Express = 100kb)
+// limit 10mb, default Express = 100kb
 app.use(express.json({ limit: "10mb" }));
 
-// ─────────────────────────────────────────────────────────────────────────────
-// POST /parse  —  Parse HTML, kembalikan nodes + metadata
-//
-// Dipisah dari /search agar nodes[] hanya dikirim SEKALI saat awal,
-// tidak diulang di setiap request traversal.
-//
-// Body: { url?, html? }
-// ─────────────────────────────────────────────────────────────────────────────
+
 app.post("/parse", async (req, res) => {
   try {
     const { url, html: rawHtml } = req.body;
@@ -42,14 +35,7 @@ app.post("/parse", async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// POST /search  —  BFS / DFS traversal
-//
-// Body: { html, selector, algo: "BFS"|"DFS", limit?: number, mt?: boolean }
-//
-// Response TIDAK mengembalikan nodes[] — frontend sudah punya dari /parse.
-// Hanya mengembalikan traversalLog, results, stats.
-// ─────────────────────────────────────────────────────────────────────────────
+
 app.post("/search", async (req, res) => {
   try {
     const { url, html: rawHtml, selector, algo, limit, mt } = req.body;
@@ -83,14 +69,13 @@ app.post("/search", async (req, res) => {
     res.json({
       success: true,
       data: {
-        // nodes TIDAK dikirim ulang — frontend sudah punya dari /parse
         maxDepth,
         results:      result.results,
         traversalLog: result.traversalLog,
         visited:      result.visited,
         time:         result.time,
         threads:      result.threads ?? 1,
-        htmlSource:   html,   // masih dikirim untuk keperluan LCA & display
+        htmlSource:   html,
       },
     });
   } catch (err: any) {
@@ -99,11 +84,7 @@ app.post("/search", async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// POST /lca  —  Lowest Common Ancestor dengan Binary Lifting
-//
-// Body: { html: string, nodeU: number, nodeV: number }
-// ─────────────────────────────────────────────────────────────────────────────
+
 app.post("/lca", async (req, res) => {
   try {
     const { html: rawHtml, nodeU, nodeV } = req.body;
@@ -114,7 +95,6 @@ app.post("/lca", async (req, res) => {
 
     const u = Number(nodeU);
     const v = Number(nodeV);
-    console.log(`[LCA] nodeU=${u}, nodeV=${v}`);
 
     const nodes = parseTree(parseHTML(rawHtml as string));
     if (u < 0 || u >= nodes.length || v < 0 || v >= nodes.length)

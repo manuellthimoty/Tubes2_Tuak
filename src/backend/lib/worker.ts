@@ -1,13 +1,3 @@
-/**
- * worker.ts — Worker Thread untuk BFS/DFS paralel.
- *
- * Mendukung dua mode:
- * 1. poolMode: true  — worker tetap hidup, menunggu pesan dari pool dispatcher.
- *    Ini digunakan oleh mt.ts Worker Pool untuk menghindari overhead spawn.
- * 2. poolMode: false / tidak ada — worker jalankan task dari workerData langsung
- *    lalu exit. (mode lama, masih didukung untuk kompatibilitas)
- */
-
 import { workerData, parentPort } from "worker_threads";
 import { treeNode } from "./tree";
 import { matchesSelector } from "./algo";
@@ -52,14 +42,13 @@ function runTask(task: Task): { log: number[]; results: number[] } {
   return { log, results };
 }
 
-// ── Pool mode: tunggu pesan, proses, balas, ulangi ──────────────────────────
 if (workerData?.poolMode) {
   parentPort!.on("message", (task: Task) => {
     const result = runTask(task);
     parentPort!.postMessage(result);
   });
 } else {
-  // ── One-shot mode (workerData berisi task langsung) ──────────────────────
+
   const result = runTask(workerData as Task);
   parentPort!.postMessage(result);
 }
