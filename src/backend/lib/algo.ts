@@ -1,122 +1,131 @@
 import { treeNode } from "./tree";
 
 export function matchesSimpleSelector(node: treeNode, selector: string): boolean {
-  if (!node || node.type !== "element") return false;
+  if (!node) return false;
   if (selector === "*") return true;
 
-  // Cek ID (#header)
+  if (selector.startsWith(".")) {
+    const classes = node.className ? node.className.split(/\s+/).filter(Boolean) : [];
+    return selector.split(".").filter(Boolean).every(c => classes.includes(c));
+  }
+
   if (selector.startsWith("#")) {
     return node.idName === selector.slice(1);
   }
 
-  // Cek Class (.box)
-  if (selector.startsWith(".")) {
-    const classes = node.className.split(/\s+/);
-    return classes.includes(selector.slice(1));
+  const tagEndIdx = selector.search(/[.#]/);
+  const tag = (tagEndIdx === -1 ? selector : selector.slice(0, tagEndIdx)).toLowerCase();
+
+  if (tag && tag !== "*" && node.tagName.toLowerCase() !== tag) return false;
+
+  const classMatches = [...selector.matchAll(/\.([^.#]+)/g)];
+  if (classMatches.length > 0) {
+    const classes = node.className ? node.className.split(/\s+/).filter(Boolean) : [];
+    for (const m of classMatches) {
+      if (!classes.includes(m[1])) return false;
+    }
   }
 
-  // Cek Tag (p, div, h1)
-  return node.tagName.toLowerCase() === selector.toLowerCase();
+  const idMatch = selector.match(/#([^.#]+)/);
+  if (idMatch && node.idName !== idMatch[1]) return false;
+
+  return true;
 }
 
 export function matchesSelector(nodes: treeNode[], nodeId: number, selector: string): boolean {
-
-  const parts = selector.trim().split(/\s+/);
-  if (parts.length === 1) return matchesSimpleSelector(nodes[nodeId], selector);
-
+  const normalized = selector.trim().replace(/\s*([>+~])\s*/g, " $1 ");
+  const parts = normalized.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return matchesSimpleSelector(nodes[nodeId], selector.trim());
   return checkSelectorMatch(nodes, nodeId, parts);
 }
 
 function checkSelectorMatch(nodes: treeNode[], nodeId: number, parts: string[]): boolean {
   if (parts.length === 0) return true;
 
-  const lastPart = parts[parts.length - 1];
-  const currentNode = nodes[nodeId];
-
-  if (!matchesSimpleSelector(currentNode, lastPart)) return false;
-
+  const node = nodes[nodeId];
+  if (!matchesSimpleSelector(node, parts[parts.length - 1])) return false;
   if (parts.length === 1) return true;
 
-  const operator = parts[parts.length - 2];
-  const remainingParts = parts.slice(0, parts.length - 2);
+  const op = parts[parts.length - 2];
+  const rest = parts.slice(0, parts.length - 2);
 
-  if (operator === ">") {
-    if (currentNode.parent === null) return false;
-    return checkSelectorMatch(nodes, currentNode.parent, remainingParts);
-  } 
-  else if (operator === "+") {
-    if (currentNode.parent === null) return false;
-    const siblings = nodes[currentNode.parent].children;
-    const myIdx = siblings.indexOf(nodeId);
-    if (myIdx <= 0) return false;
-    return checkSelectorMatch(nodes, siblings[myIdx - 1], remainingParts);
+  if (op === ">") {
+    if (node.parent === null) return false;
+    return checkSelectorMatch(nodes, node.parent, rest);
   }
-  else if (operator === "~") {
-      if (currentNode.parent === null) return false;
-      const siblings = nodes[currentNode.parent].children;
-      const myIdx = siblings.indexOf(nodeId);
-      for (let j = 0; j < myIdx; j++) {
-          if (checkSelectorMatch(nodes, siblings[j], remainingParts)) return true;
-      }
-      return false;
+
+  if (op === "+") {
+    if (node.parent === null) return false;
+    const siblings = nodes[node.parent].children;
+    const idx = siblings.indexOf(nodeId);
+    if (idx <= 0) return false;
+    return checkSelectorMatch(nodes, siblings[idx - 1], rest);
   }
-  else {
-    let parentId = currentNode.parent;
-    const descendantParts = parts.slice(0, parts.length - 1); 
-    while (parentId !== null) {
-      if (checkSelectorMatch(nodes, parentId, descendantParts)) return true;
-      parentId = nodes[parentId].parent;
+
+  if (op === "~") {
+    if (node.parent === null) return false;
+    const siblings = nodes[node.parent].children;
+    const idx = siblings.indexOf(nodeId);
+    for (let j = 0; j < idx; j++) {
+      if (checkSelectorMatch(nodes, siblings[j], rest)) return true;
     }
     return false;
   }
+
+  // descendant combinator
+  const ancestor = parts.slice(0, parts.length - 1);
+  let parentId = node.parent;
+  while (parentId !== null) {
+    if (checkSelectorMatch(nodes, parentId, ancestor)) return true;
+    parentId = nodes[parentId].parent;
+  }
+  return false;
 }
 
-export function searchBFS(nodes: treeNode[], startId: number, selector: string, topN: number = 999999) {
-  let log: number[] = [];
-  let res: number[] = [];
-  let q: number[] = [startId];
-  let start = performance.now();
+export function searchBFS(nodes: treeNode[], startId: number, selector: string, topN = Infinity) {
+  const log: number[] = [];
+  const results: number[] = [];
+  const queue: number[] = [startId];
+  const start = performance.now();
 
-  while (q.length > 0) {
-    let currId = q.shift()!;
-    let currNode = nodes[currId];
-    if (!currNode) continue;
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    const node = nodes[id];
+    if (!node) continue;
 
-    log.push(currId);
-    if (matchesSelector(nodes, currId, selector)) {
-      res.push(currId);
-      if (res.length >= topN) break;
+    log.push(id);
+    if (matchesSelector(nodes, id, selector)) {
+      results.push(id);
+      if (results.length >= topN) break;
     }
 
-    for (const childId of currNode.children) {
-      q.push(childId);
-    }
+    for (const child of node.children) queue.push(child);
   }
 
-  return { results: res, traversalLog: log, visited: log.length, time: performance.now() - start };
+  return { results, traversalLog: log, visited: log.length, time: performance.now() - start };
 }
 
-export function searchDFS(nodes: treeNode[], startId: number, selector: string, topN: number = 999999) {
-  let log: number[] = [];
-  let res: number[] = [];
-  let stack: number[] = [startId];
-  let start = performance.now();
+export function searchDFS(nodes: treeNode[], startId: number, selector: string, topN = Infinity) {
+  const log: number[] = [];
+  const results: number[] = [];
+  const stack: number[] = [startId];
+  const start = performance.now();
 
   while (stack.length > 0) {
-    let currId = stack.pop()!;
-    let currNode = nodes[currId];
-    if (!currNode) continue;
+    const id = stack.pop()!;
+    const node = nodes[id];
+    if (!node) continue;
 
-    log.push(currId);
-    if (matchesSelector(nodes, currId, selector)) {
-      res.push(currId);
-      if (res.length >= topN) break;
+    log.push(id);
+    if (matchesSelector(nodes, id, selector)) {
+      results.push(id);
+      if (results.length >= topN) break;
     }
 
-    for (let i = currNode.children.length - 1; i >= 0; i--) {
-      stack.push(currNode.children[i]);
+    for (let i = node.children.length - 1; i >= 0; i--) {
+      stack.push(node.children[i]);
     }
   }
 
-  return { results: res, traversalLog: log, visited: log.length, time: performance.now() - start };
+  return { results, traversalLog: log, visited: log.length, time: performance.now() - start };
 }

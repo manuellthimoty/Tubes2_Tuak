@@ -1,49 +1,263 @@
 <!DOCTYPE html>
-<html lang = "en">
-  <head>
-    <meta charset = "utf-8">
-    <meta name = "viewport" content = "width=device-width, initial-scale=1">
-    <title> DOM Tree Visualizer</title>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TUAK DOM Visualizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-  </head>
-  <body>
-    <h1> DOM Tree Visualizer</h1>
-    <div class = "input-container">
-
-        <!-- URL input -->
-        <label for = "url-input"> Input URL: </label>
-        <input type = "text" id = "url-input" placeholder = "https://www.google.com">
+</head>
+<body>
+    <div class="app-container">
         
-        <!-- selector input -->
-        <label for= "selector-input">Choose Element:</label>
-        <input type = "text" id = "selector-input" placeholder = "button">
+        <header class="app-header">
+            <div class="header-left">
+                <div class="header-logo brand-logos">
+                    <img src="asset/hmifitb_logo.jpeg" alt="HMIF ITB Logo" class="brand-logo hmif-logo">
+                    <img src="asset/tuaklogo.png" alt="TUAK Logo" class="brand-logo tuak-logo">
+                </div>
 
-        <!--pilih Algo-->
-        <select id = "algo-select">
-            <option value = "DFS">DFS</option>
-            <option value = "BFS">BFS</option>
-        </select>
+                <div class="header-text">
+                    <h1>TUAK DOM VISUALIZER</h1>
+                    <p class="header-sub">Created by TUAK, Juan (13524032), Ariel (13524085), Manu (13524102)</p>
+                </div>
+            </div>
 
-        <button id ="search-btn">Start Searching</button>
-    </div>
+            <div class="header-badges">
+                <span class="badge badge-bfs">BFS</span>
+                <span class="badge badge-dfs">DFS</span>
+            </div>
+        </header>
 
-    <div class="main-layout">
-        <!-- Panel Kiri: Sumber HTML -->
-        <div id="html-preview" class="panel">
-            <h3>HTML Source</h3>
-            <textarea id="html-input-area" placeholder="Your HTML Source"></textarea>
+        
+        <div class="panel step-panel" id="step1-panel">
+            <div class="panel-title">
+                <span class="panel-icon">
+                    
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M6.5 9.5a4 4 0 0 0 5.657 0l1.414-1.414a4 4 0 0 0-5.657-5.657L6.5 3.843" stroke="#3d7a35" stroke-width="1.5" stroke-linecap="round"/>
+                        <path d="M9.5 6.5a4 4 0 0 0-5.657 0L2.43 7.914a4 4 0 0 0 5.657 5.657L9.5 12.157" stroke="#3d7a35" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                1. Input HTML
+            </div>
+            <div class="input-row">
+                <div class="input-col">
+                    <label>
+                        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="vertical-align:middle;margin-right:4px">
+                            <circle cx="6.5" cy="6.5" r="5.5" stroke="#3d7a35" stroke-width="1.2"/>
+                            <path d="M4 6.5h5M6.5 4v5" stroke="#3d7a35" stroke-width="1.2" stroke-linecap="round"/>
+                        </svg>
+                        URL (Link)
+                    </label>
+                    <input type="text" id="url-input" placeholder="https://example.com">
+                </div>
+                <div class="input-col">
+                    <label>
+                        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="vertical-align:middle;margin-right:4px">
+                            <rect x="1.5" y="1.5" width="10" height="10" rx="2" stroke="#3d7a35" stroke-width="1.2"/>
+                            <path d="M3.5 4.5h6M3.5 6.5h4M3.5 8.5h5" stroke="#3d7a35" stroke-width="1.2" stroke-linecap="round"/>
+                        </svg>
+                        Raw HTML <span class="label-optional">(Opsional)</span>
+                    </label>
+                    <textarea id="html-input" rows="3" placeholder="Atau paste kode HTML di sini..."></textarea>
+                </div>
+                <button id="parse-btn" type="button" class="action-btn">
+                    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" style="vertical-align:middle;margin-right:5px">
+                        <path d="M2 7.5h11M9 3.5l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Parse
+                </button>
+            </div>
         </div>
-        <div id="resizer" class="resizer"></div>
 
-        <!-- Panel Kanan: Visualisasi Pohon -->
-        <div id="tree-container" class="panel">
-            <h3>Tree Visualization</h3>
-            <div id="tree-canvas"></div>
+        
+        <div class="panel step-panel disabled" id="step2-panel">
+            <div class="panel-title">
+                <span class="panel-icon">
+                    
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M2 4h12M2 8h12M2 12h12" stroke="#3d7a35" stroke-width="1.5" stroke-linecap="round"/>
+                        <circle cx="5" cy="4" r="1.8" fill="#fff" stroke="#3d7a35" stroke-width="1.2"/>
+                        <circle cx="11" cy="8" r="1.8" fill="#fff" stroke="#3d7a35" stroke-width="1.2"/>
+                        <circle cx="7" cy="12" r="1.8" fill="#fff" stroke="#3d7a35" stroke-width="1.2"/>
+                    </svg>
+                </span>
+                2. Traversal Options
+            </div>
+            <div class="control-row">
+                <div class="control-item">
+                    <label>
+                        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="vertical-align:middle;margin-right:4px">
+                            <path d="M2 4h2.5a2 2 0 0 1 2 2v1a2 2 0 0 0 2 2H11" stroke="#3d7a35" stroke-width="1.2" stroke-linecap="round"/>
+                            <circle cx="11" cy="9" r="1.5" fill="#3d7a35"/>
+                            <circle cx="2" cy="4" r="1.5" fill="#3d7a35"/>
+                        </svg>
+                        CSS Selector
+                    </label>
+                    <input type="text" id="selector-input" placeholder="div, .class, #id, div.foo">
+                </div>
+                <div class="control-item">
+                    <label>
+                        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="vertical-align:middle;margin-right:4px">
+                            <path d="M6.5 1v11M1 6.5h11" stroke="#3d7a35" stroke-width="1.2" stroke-linecap="round"/>
+                            <circle cx="6.5" cy="6.5" r="5" stroke="#3d7a35" stroke-width="1.2"/>
+                        </svg>
+                        Algoritma
+                    </label>
+                    <select id="algo-select" title="Pilih algoritma traversal">
+                        <option value="BFS">BFS — Breadth First</option>
+                        <option value="DFS">DFS — Depth First</option>
+                    </select>
+                </div>
+                <div class="control-item">
+                    <label>
+                        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="vertical-align:middle;margin-right:4px">
+                            <rect x="1.5" y="3.5" width="10" height="7" rx="1.5" stroke="#3d7a35" stroke-width="1.2"/>
+                            <path d="M4.5 3.5V2.5a2 2 0 0 1 4 0v1" stroke="#3d7a35" stroke-width="1.2" stroke-linecap="round"/>
+                        </svg>
+                        Hasil Ditampilkan
+                    </label>
+                    <div class="limit-controls">
+                        <label class="radio-label">
+                            <input type="radio" name="limit-type" value="all" checked> Semua
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="limit-type" value="topn"> Top
+                            <input type="number" id="limit-n" value="10" min="1" class="limit-n-input" disabled>
+                        </label>
+                    </div>
+                </div>
+                <div class="control-item">
+                    <label>
+                        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="vertical-align:middle;margin-right:4px">
+                            <circle cx="6.5" cy="6.5" r="5" stroke="#3d7a35" stroke-width="1.2"/>
+                            <path d="M6.5 3.5v3l2 1.5" stroke="#3d7a35" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Kecepatan Animasi: <span id="speed-label" style="color:#f9a825;margin-left:4px;font-family:'JetBrains Mono',monospace">20ms</span>
+                    </label>
+                    <input type="range" id="speed-select" min="1" max="100" value="20" class="speed-slider" title="Geser untuk mengatur kecepatan animasi">
+                    <div class="speed-hint"><span>Cepat (1ms)</span><span>Lambat (100ms)</span></div>
+                </div>
+                <div class="btn-group">
+                    <label class="mt-toggle" title="Aktifkan multithreading (Worker Threads) untuk BFS/DFS">
+                        <input type="checkbox" id="mt-checkbox">
+                        <span class="mt-toggle-label">
+                            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="vertical-align:middle;margin-right:3px">
+                                <path d="M2 3h9M2 6.5h9M2 10h9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                                <circle cx="5" cy="3" r="1.3" fill="currentColor"/>
+                                <circle cx="8" cy="6.5" r="1.3" fill="currentColor"/>
+                                <circle cx="4" cy="10" r="1.3" fill="currentColor"/>
+                            </svg>
+                            Multithreading
+                        </span>
+                    </label>
+                    <button id="traverse-btn" type="button" class="action-btn btn-orange" disabled>
+                        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" style="vertical-align:middle;margin-right:5px">
+                            <path d="M3 7.5C3 4.46 5.46 2 8.5 2a5.5 5.5 0 0 1 0 11C5.46 13 3 10.54 3 7.5z" stroke="currentColor" stroke-width="1.6"/>
+                            <path d="M6.5 5.5l3 2-3 2V5.5z" fill="currentColor"/>
+                        </svg>
+                        Traverse
+                    </button>
+                    <button id="lca-btn" type="button" class="action-btn btn-lca" disabled>
+                        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" style="vertical-align:middle;margin-right:5px">
+                            <circle cx="7.5" cy="2.5" r="2" stroke="currentColor" stroke-width="1.4"/>
+                            <circle cx="3"   cy="11" r="2" stroke="currentColor" stroke-width="1.4"/>
+                            <circle cx="12"  cy="11" r="2" stroke="currentColor" stroke-width="1.4"/>
+                            <path d="M7.5 4.5v2M5.5 8.5L3 9M9.5 8.5L12 9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                        </svg>
+                        Traverse LCA
+                    </button>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <div id="message"></div>
+        
+        <div class="lca-status-bar" id="lca-status-bar" style="display:none">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="4" r="2.5" stroke="#3d7a35" stroke-width="1.5"/><circle cx="3" cy="13" r="2" stroke="#3d7a35" stroke-width="1.3"/><circle cx="13" cy="13" r="2" stroke="#3d7a35" stroke-width="1.3"/><path d="M8 6.5v3M5.5 11L3 11M10.5 11L13 11" stroke="#3d7a35" stroke-width="1.3" stroke-linecap="round"/></svg>
+            <span id="lca-status-text">Mode LCA aktif — Klik <b>2 node</b> pada pohon DOM, lalu tekan <b>Traverse LCA</b></span>
+            <div class="lca-node-chips">
+                <div class="lca-chip" id="lca-chip-1">Node 1: <span>—</span></div>
+                <div class="lca-chip" id="lca-chip-2">Node 2: <span>—</span></div>
+            </div>
+            <button class="lca-cancel-btn" id="lca-cancel-btn">X Batal</button>
+        </div>
+
+        
+        <div class="workspace">
+            <div class="tree-section panel">
+                <div class="tree-header">
+                    <div class="panel-title" style="margin-bottom:0">
+                        <span class="panel-icon">
+                            
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <circle cx="8" cy="3" r="2" fill="#3d7a35"/>
+                                <circle cx="4" cy="10" r="2" fill="#8fca7a"/>
+                                <circle cx="12" cy="10" r="2" fill="#8fca7a"/>
+                                <line x1="8" y1="5" x2="4" y2="8" stroke="#3d7a35" stroke-width="1.4"/>
+                                <line x1="8" y1="5" x2="12" y2="8" stroke="#3d7a35" stroke-width="1.4"/>
+                                <line x1="8" y1="5" x2="8" y2="13" stroke="#3d7a35" stroke-width="1.4" stroke-dasharray="2 1.5"/>
+                            </svg>
+                        </span>
+                        DOM Tree
+                    </div>
+                    <div class="zoom-controls">
+                        <button id="zoom-out-btn" class="zoom-btn" title="Zoom Out">−</button>
+                        <span id="zoom-label">100%</span>
+                        <button id="zoom-in-btn" class="zoom-btn" title="Zoom In">+</button>
+                        <button id="zoom-reset-btn" class="zoom-btn" title="Reset Zoom">&#8635;</button>
+                    </div>
+                </div>
+                <div id="tree-viewport">
+                    <div id="tree-canvas"></div>
+                </div>
+                
+                <div class="empty-state" id="empty-state">
+                    <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
+                        <circle cx="30" cy="12" r="7" fill="#e8f5e0" stroke="#8fca7a" stroke-width="2"/>
+                        <circle cx="15" cy="36" r="7" fill="#e8f5e0" stroke="#8fca7a" stroke-width="2"/>
+                        <circle cx="45" cy="36" r="7" fill="#e8f5e0" stroke="#8fca7a" stroke-width="2"/>
+                        <line x1="30" y1="19" x2="15" y2="29" stroke="#c5e8b0" stroke-width="2"/>
+                        <line x1="30" y1="19" x2="45" y2="29" stroke="#c5e8b0" stroke-width="2"/>
+                        <text x="27" y="16" font-size="8" fill="#3d7a35" font-family="monospace">&lt;/&gt;</text>
+                    </svg>
+                    <p>Parse HTML dulu untuk melihat pohon DOM</p>
+                </div>
+            </div>
+
+            <div class="log-section panel">
+                <div class="panel-title">
+                    <span class="panel-icon">
+                        
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <rect x="2" y="2" width="12" height="12" rx="2" stroke="#3d7a35" stroke-width="1.4"/>
+                            <path d="M5 5.5h6M5 8h4M5 10.5h5" stroke="#3d7a35" stroke-width="1.3" stroke-linecap="round"/>
+                        </svg>
+                    </span>
+                    Traversal Log
+                </div>
+                <div class="stats-bar" id="stats-info">
+                    <span class="stat-item">
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="vertical-align:middle"><circle cx="6" cy="6" r="4.5" stroke="#3d7a35" stroke-width="1.2"/><path d="M6 3v3l2 1" stroke="#3d7a35" stroke-width="1.1" stroke-linecap="round"/></svg>
+                        Nodes: 0
+                    </span>
+                    <span class="stat-divider">|</span>
+                    <span class="stat-item">
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="vertical-align:middle"><path d="M6 1v10M2 5l4-4 4 4" stroke="#3d7a35" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        Depth: 0
+                    </span>
+                </div>
+                <ul id="log-list">
+                    <li class="log-placeholder">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="display:block;margin:0 auto 6px"><circle cx="10" cy="10" r="8" stroke="#c5e8b0" stroke-width="1.5"/><path d="M7 10h6M10 7v6" stroke="#8fca7a" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        Log penelusuran akan muncul di sini...
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
     <script src="script.js"></script>
-  </body>
+</body>
 </html>
-
